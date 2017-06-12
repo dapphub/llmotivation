@@ -1,0 +1,421 @@
+% Article template for Mathematics Magazine
+% Revised 7/2002  Thanks for Greg St. George
+% \documentclass[12pt]{article}
+\documentclass[sigconf]{acmart}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage[ngerman]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{prftree}
+\usepackage{amsmath}
+% \usepackage{pf2}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{dot2texi}
+\usetikzlibrary{shapes,arrows}
+\renewcommand{\baselinestretch}{1.2}
+%This is the command that spaces the manuscript for easy reading
+\newtheorem{zeige}{Zeige}
+
+\newtheorem{corollar}{Korollar}
+\newtheorem{satz}{Satz}
+% \newtheorem{lemma}{Lemma}
+% \newtheorem{definition}{Definition}
+\newtheorem{kollar}{Kollar}
+\newtheorem{beispiel}{Beispiel}
+% \newtheorem{theorem}{Theorem}
+%todo
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+\usepackage{xargs}                      % Use more than one optional parameter in a new commands
+\newcommandx{\QUESTION}[2][1=]{\todo[linecolor=none,backgroundcolor=blue!15,bordercolor=none,#1]{\textbf{QUESTION: }#2}}
+\newcommandx{\TODO}[2][1=]{\todo[inline,linecolor=none,backgroundcolor=blue!15,bordercolor=none,#1]{\textbf{TODO: }#2}}
+
+\begin{document}
+
+\title{Linear Logic as a blockchain language}
+\author{Denis Erfurt}
+
+\begin{abstract}
+  asd asdas
+\end{abstract}
+
+\maketitle
+
+\section{Motivation}
+
+\begin{itemize}
+  \item Linear Logic is a \textbf{Logic}, which is one of the oldest and best studied mathematical systems.
+  \item proof terms Curry-Howard correspond to the pi-calculus - a process calculus with atomic notion of concurrency, making it an ideal candidate for blockchain application.
+\end{itemize}
+
+\subsection{Requirements}
+
+\begin{enumerate}
+  \item R01: Programming obvious applications has to be intuitive.
+  \item R02: Practically proving the correctness of programs must be possible.
+  \item R03: Execution of compiled programms must be relativelly effecient.
+  \item R04: Programs has to be composable with other programs (e.g. they should be able to call and be called by other programs).
+\end{enumerate}
+
+\section{General Idea}
+
+The general Idea is to view the blockchain [contract] as a Multiset $\mathcal{B}$ of Ressources.
+
+\begin{equation}
+  \prftree[r]
+  {$\mathcal{B}$-transition}
+  {
+    \prftree
+    {
+      \mathcal{D}
+    } {
+      \Delta\vdash C
+    }
+  }
+  {\exists\theta.\Delta\theta\subseteq\mathcal{B}}
+  {\mathcal{B}\longrightarrow\mathcal{B}\setminus\Delta\theta\cup\{C\theta\}}
+\end{equation}
+
+\subsection{Unification}
+During a blockchain transition step a Most General Unifier(MGU) $\theta$ has to be found. Initially $\theta$ contains the assigment of reserved variables, such as $Sender, Origin, BlockNumber, $ etc, which don't change during unification.
+
+
+\section{example programms}
+
+Lets considder a simple token.
+
+
+\section{Security}
+We are interested to proof different properties about our written programs. E.g. that the total value of a system is not changed with different operations, this we want to illustrate on a case study - a coin exchange:
+Let $d$ denote a dime, $n$ a nickel and $q$ a quarter together with the following persistent rules given:
+
+\[\left.\\
+\begin{array}{l}
+r1: q\multimap d\otimes d\otimes n \\
+r2: d\otimes d\otimes n\multimap q \\
+r3: d\multimap n\otimes n \\
+r4: n\otimes n\multimap d \\
+\end{array}
+\right\} R\]
+
+Also we want to have a persistent notion of value:
+
+\[ \left.
+\begin{array}{l}
+  v1: q\multimap value(25) \\
+  v2: d\multimap value(10) \\
+  v3: n\multimap value(5)
+\end{array}
+\right\} V \]
+
+Additionally we can add up values:
+\[ sum: value(X)\otimes value(Y)\multimap value(X + Y) \]
+
+Now our task is to prove the stability of the system. This means that the total value don't change if a rule in R is applied. We can do this easily by proof expansion of every rule in $R$.
+We want to illustrate this for $r1$, the other cases can be shown analogous:
+\\
+Without loss of generality let $\Delta = value(X), q$, we want to proof $\Delta \vdash value(X + 25)$ first by applying only Rules out of V + sum as seen in Proof \ref{pf1} and expand this proof by applying $r1$ first and then restricting ourselves with only using rules out of V, which can be seen in Proof \ref{pf2}. This proves that the application of rule $r1$ didn't change the total value.
+With this we have shown that rules in R satisfy our stability criteria.
+The proves are rather technical and included for the purpose to demonstrate, that those proves can be easily automatized.
+\TODO{provided that the computation is deterministic and arbitrary values can't be derived. Find a way how to prove those properties automatically.}
+
+\section{Efficiency}
+As computation is done via proof-search and unification, executing programms tend to be slow in practice. Therefore we are interested in methods which reduces the computational overhead. One such method could be the recuction of proof search to the execution of a minimal set of evm instructions, which yield the same result. For this the equivalence of the proof search to the evm instructions has to be \textbf{proven}.
+
+In order to achieve this, we will reconstruct the evm in linear logic and show for a proposition $A$, a proposition $B$ which represents an evm program and a substitution $\theta$:
+
+\[ \Gamma; \cdot \vdash A(\bar X)\theta \Leftrightarrow \Gamma; \cdot \vdash B(\bar X)\theta \]
+
+\TODO{Or is it $\Gamma; \cdot \vdash A(\bar X)\multimapboth B(\bar X)$?}
+
+Meaning that the evm programm $B$ is behaviourally isomorphic to A.
+
+\subsection*{EVM implementation}
+For demonstration purposes we will just implement a basic stack machine here, which should be sufficient to illustrate the approach.
+
+The EVM has a few distinct components, such as:
+
+\begin{itemize}
+  \item code
+  \item pc
+  \item stack
+  \item ...
+\end{itemize}
+
+
+We can model the Stack Machine with the following predicates:
+
+\begin{itemize}
+  \item code(X,Y) - OpCode Y is on position X in the code.
+  \item pc(X) - Program Counter is at position X
+  \item stack(X,Y) - word Y is on position X on the stack
+  \item ...
+\end{itemize}
+
+
+Additionally we create a few extra predicates which will help during the execution:
+\begin{itemize}
+  \item stackLength(X) - X is the current stack length
+\end{itemize}
+
+We now want to model the predicate $inc(X,Y) := X + 1 = Y$ in the evm with the following program: $PUSH\ X\ INC$\\ The result should then be found at stack height 0. We can retrieve it with:
+\[ stack(0, X) \otimes pc(3) \multimap result(X) \]
+
+
+Also initially we have the following predicates given:
+$pc(0) \otimes stackLength(0)$
+
+\subsection*{PUSH}
+
+  $$ pc(X)\otimes code(X, PUSH) \otimes code(sX, V)\otimes stackLength(L)$$
+  $$\multimap$$
+  $$stack(L, V)\otimes pc(ssX)\otimes code(X, PUSH)\otimes code(sX, V)\otimes stackLength(sL)$$
+
+This pushes the value V to the stack, increments the stack length and preserves the code.
+
+\subsection*{INC}
+
+Assume we have the following axiomatic rule for inc given:
+
+\begin{itemize}
+  \item inc(X, sX)
+\end{itemize}
+
+Thus:
+  $$ inc(X, Y) \Leftrightarrow X + 1 = Y$$
+
+
+So the following transition rule models our INC opCode:
+
+  $$pc(X) \otimes code(X, INC) \otimes stack(L, V) \otimes stackLength(sL) \otimes inc(V, W)$$
+  $$\multimap$$
+  $$pc(sX) \otimes code(X, INC) \otimes stackLength(sL) \otimes stack(L, W)$$
+
+
+\subsection*{proof}
+
+Together we have to prove:
+\[ inc(X,Y) \multimapboth (\mathcal{C}\otimes \mathcal{R}\otimes pc(0)\otimes stackLength(0) \multimap result(Y)) \]
+with the code:
+\[ \mathcal{C} := code(0, PUSH)\otimes code(1, X) \otimes code(2, INC) \]
+and the termination condition:
+\[ \mathcal{R} := pc(3)\otimes stackLength(1) \otimes stack(0, Z)\multimap result(Z)\]
+
+
+\TODO{Make the actual proof, but the conjecture is that this is proovable.}
+
+\TODO{How does this work with non-primitives, e.g. loops, math-function e.g. log, exp}
+
+
+
+
+\section{Appendix}
+
+\begin{figure*}
+\[
+  \prftree[r] {$\multimap$L}
+  {
+    \prftree[r] {$\otimes$L}
+    {
+      \prftree[r] {$copy_{sum}$}
+      {
+        \prftree[r] {$\multimap$L}
+        {
+          \prftree[r] {$id(\sigma)$}
+          {
+            value(X)\otimes value(25)\vdash value(Y)\otimes value(Y')
+          }
+        }
+        {
+          \prftree[r] {$id(\sigma)$}
+          {
+            value(Y + Y')\vdash value(X + 25)
+          }
+        }
+        {
+          value(X)\otimes value(25), value(Y)\otimes value(Y')\multimap value(Y + Y')\vdash value(X + 25)
+        }
+      }
+      { value(X)\otimes value(25)\vdash value(X + 25) }
+    }
+    { value(X),value(25)\vdash value(X + 25) }
+  }
+  {
+    \prftree[r] {id}
+    { q\vdash q }
+  }
+  { \prftree[r] {$copy_{v1}$}
+    {value(X),q,q\multimap value(25)\vdash value(X + 25)}
+    {value(X),q\vdash value(X + 25)}
+  }
+\]
+$\sigma = \{\frac{X}{Y}, \frac{25}{Y'}\}$
+\caption{Proof using only rules from $V$}
+\label{pf1}
+\end{figure*}
+
+\begin{figure*}
+  \[
+    \prftree[r] {$copy_{r1}$} {
+      \prftree[r] {$\multimap$L}
+      {
+        \prftree[r] {id} { q\vdash q }
+      }
+      {
+        \prftree[r] {$\otimes$L}
+        {
+          \prftree[r] {$\otimes$L}
+          {
+            \prftree[r] {$copy_{v2}$}
+            {
+              \prftree[r] {$\multimap$L}
+              {
+                \prftree[r]{$\otimes$L}
+                {
+                  \prftree[r]{$copy_{sum}$}
+                  {
+                    \prftree[r] {$\multimap$L}
+                    {
+                      \prftree[r] {$copy_{v2}$}
+                      {
+                        \prftree[r] {$\multimap$L}
+                        {
+                          \prftree[r] {id} {d\vdash d}
+                        }
+                        {
+                          \prftree[r] {$\otimes$L}
+                          {
+                            \prftree[r] {$copy_{sum}$}
+                            {
+                              \mathcal{D}
+                            }
+                            {
+                              value(Y + Y')\otimes value(10), n \vdash value(X + 25)
+                            }
+                          }
+                          {
+                          value(Y + Y'), value(10), n \vdash value(X + 25)
+                          }
+                        }
+                        {
+                          value(Y + Y'), d, d\multimap value(10), n \vdash value(X + 25)
+                        }
+                      }
+                      {
+                      value(Y + Y'), d, n \vdash value(X + 25)
+                      }
+                    }
+                    {
+                      \prftree[r] {$id(\sigma)$}
+                      {
+                        value(X)\otimes value(10) \vdash value(Y)\otimes value(Y')
+                      }
+                    }
+                    {
+                      value(X)\otimes value(10), value(Y)\otimes value(Y')\multimap value(Y + Y'), d, n \vdash value(X + 25)
+                    }
+                  }
+                  {
+                    value(X)\otimes value(10), d, n \vdash value(X + 25)
+                  }
+                }
+                {
+                  value(X), d, n, value(10)\vdash value(X + 25)
+                }
+              }
+              {
+                \prftree[r]{id} {d\vdash d}
+              }
+              {
+                value(X), d, d, n, d\multimap value(10)\vdash value(X + 25)
+              }
+            }
+            {
+              value(X), d, d, n\vdash value(X + 25)
+            }
+          }
+          {
+            value(X), d, d\otimes n\vdash value(X + 25)
+          }
+        }
+        {
+          value(X), d\otimes d\otimes n\vdash value(X + 25)
+        }
+      }
+      {
+        value(X), q, q\multimap d\otimes d\otimes n\vdash value(X + 25)
+      }
+    } {
+      value(X), q \vdash value(X + 25)
+    }
+  \]
+With $\mathcal{D} :=$
+  \[
+  \prftree[r] {$\multimap$L}
+  {
+      \prftree[r] {$id(\sigma)$}
+      {
+        value(Y + Y')\otimes value(10)\vdash value(Z)\otimes value(Z')
+      }
+    }
+    {
+      \prftree[r] {$copy_{v3}$}
+      {
+        \prftree[r] {$\multimap$L}
+        {
+          \prftree[r] {$\otimes$L}
+          {
+            \mathcal{E}
+          }
+          {
+            value(Z + Z'), value(5) \vdash value(X + 25)
+          }
+        }
+        {
+          \prftree[r] {id} {n\vdash n}
+        }
+        {
+          value(Z + Z'), n, n\multimap value(5) \vdash value(X + 25)
+        }
+      }
+      {
+        value(Z + Z'), n \vdash value(X + 25)
+      }
+    }
+    {
+      value(Y + Y')\otimes value(10), value(Z)\otimes value(Z')\multimap value(Z + Z'), n \vdash value(X + 25)
+    }
+  \]
+  With $\mathcal{E} :=$
+  \[
+  \prftree[r] {$copy_{sum}$}
+  {
+    \prftree[r] {$\multimap$L}
+    {
+      \prftree[r] {$id(\sigma)$}
+      {
+        value(Z + Z')\otimes value(5)\vdash value(Q)\otimes value(Q')
+      }
+    }
+    {
+      \prftree[r] {$id(\sigma)$}
+      {
+        value(Q + Q') \vdash value(X + 25)
+      }
+    }
+    {
+      value(Z + Z')\otimes value(5), value(Q)\otimes value(Q')\multimap value(Q + Q') \vdash value(X + 25)
+    }
+  }
+  {
+    value(Z + Z')\otimes value(5) \vdash value(X + 25)
+  }
+  \]
+  With $\sigma := \{\frac{X}{Y}, \frac{10}{Y'}, \frac{X + 10}{Z}, \frac{10}{Z'}, \frac{X + 10 + 10}{Q}, \frac{5}{Q'}\}$
+  \caption{Proof using rule $r1$ and only rules from $V$}
+  \label{pf2}
+\end{figure*}
+
+
+
+\end{document}
