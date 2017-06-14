@@ -44,8 +44,10 @@
 \section{Motivation}
 
 \begin{itemize}
-  \item Linear Logic is a \textbf{Logic}, which is one of the oldest and best studied mathematical systems.
-  \item proof terms Curry-Howard correspond to the pi-calculus - a process calculus with atomic notion of concurrency, making it an ideal candidate for blockchain application.
+  \item Linear logic is a \emph{logic}, thus belonging to one of the oldest and best studied family of mathematical systems.
+  \item Linear logic can be interpreted as a logic concerning itself with \emph{state} and \emph{scarce resources}, both of which are central to the blockchain space.
+  \item Proof terms in linear logic can be given a Curry-Howard correspondence to terms in the $\pi$-calculus, one of the most well-studied concurrent computational models. If blockchain sharding becomes reality, concurrency will almost certainly play a central role, thus making languages that can deal with it in a native and principled ways ideal candidates for blockchain languages.
+  \item Proof terms can also be given a Curry-Howard correspondence in the $\lambda$-calculus (among other models), giving us the flexibility of choosing a rather strict programming interface for when we actively don't want to consider the complexities of concurrent programs, while still making sure that we adhere to the logical specifications.
 \end{itemize}
 
 \subsection{Requirements}
@@ -53,13 +55,13 @@
 \begin{enumerate}
   \item R01: Programming obvious applications has to be intuitive.
   \item R02: Practically proving the correctness of programs must be possible.
-  \item R03: Execution of compiled programms must be relativelly effecient.
-  \item R04: Programs has to be composable with other programs (e.g. they should be able to call and be called by other programs).
+  \item R03: Execution of compiled programs must be relatively efficient.
+  \item R04: Programs have to be composable with other programs (e.g. they should be able to call and be called by other programs).
 \end{enumerate}
 
 \section{General Idea}
 
-The general Idea is to view the blockchain [contract] as a Multiset $\mathcal{B}$ of Ressources.
+The general Idea is to view the blockchain [contract] as a Multiset $\mathcal{B}$ of Resources.
 
 \begin{equation}
   \prftree[r]
@@ -82,7 +84,7 @@ During a blockchain transition step a Most General Unifier(MGU) $\theta$ has to 
 
 \section{example programms}
 
-Lets considder a simple token.
+Lets consider a simple token.
 
 
 \section{Security}
