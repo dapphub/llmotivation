@@ -32,8 +32,8 @@
 
 \begin{document}
 
-\title{Linear Logic as a blockchain language}
-\author{Denis Erfurt}
+\title{Linear logic as a partly-executable specification language for smart contracts}
+\author{Denis Erfurt \and Jack Ek}
 
 \begin{abstract}
   asd asdas
@@ -41,27 +41,38 @@
 
 \maketitle
 
+\section{Introduction}
+We propose to use a \emph{logical programming language} based on linear logic to specify smart contracts. For those unfamiliar with the logical programming paradigm, it means that the programmer uses logical propositions to specify \emph{what} the program should do or \emph{which constraints} it should satisfy, but not \emph{how} this is achieved. From this, the computer creates a suitable program and executes it. In short, in logical programming, the specification is executable and the program is correct-by-construction, although there are caveats to this interpretation which we will discuss later.
+
+For those coming from a typed functional programming background, it can help to think of a logical language as a typed functional language, but in which the programmer only writes type signatures, no functions. This understanding is based directly on the Curry-Howard correspondence, which essentially states that type signatures are the same things as logical propositions, and programs satisfying type signatures are the same things as proofs of those propositions. 
+
+Traditionally, logical programming is based on the notion of \emph{proof search}, in which the execution of a program is defined as finding a proof of a particular proposition. (Again, this can be understood as \emph{program synthesis}, where the computer automatically creates a program which satisfies a particular constraint.) Unfortunately, proof search is undecidable for the full linear logic, so proofs will have to be written manually in some cases. And even in the cases where it is decidable, it can be a fairly expensive procedure which is arguably not viable for smart contracts due to the cost of running execution under consensus. As we will see however, there exist alternative execution strategies, which are remarkably well-suited for executing smart contracts.
+
 \section{Motivation}
+There are several reasons for why we think a logical language based on linear logic is a promising approach when it comes to smart contract programming.
 
 \begin{itemize}
-  \item Linear logic is a \emph{logic}, thus belonging to one of the oldest and best studied family of mathematical systems.
-  \item Linear logic can be interpreted as a logic concerning itself with \emph{state} and \emph{scarce resources}, both of which are central to the blockchain space.
-  \item Proof terms in linear logic can be given a Curry-Howard correspondence to terms in the $\pi$-calculus, one of the most well-studied concurrent computational models. If blockchain sharding becomes reality, concurrency will almost certainly play a central role, thus making languages that can deal with it in a native and principled ways ideal candidates for blockchain languages.
-  \item Proof terms can also be given a Curry-Howard correspondence in the $\lambda$-calculus (among other models), giving us the flexibility of choosing a rather strict programming interface for when we actively don't want to consider the complexities of concurrent programs, while still making sure that we adhere to the logical specifications.
+  \item Formal logics is an old and well-studied family of mathematical systems.
+  \item Linear logic can be interpreted as a logic concerning itself with \emph{state} and \emph{scarce resources}, both of which are central to smart contracts.
+  \item Proofs in linear logic can be given several different Curry-Howard correspondences, granting programmers the flexibility to write proofs/programs in several different programming languages, depending on which one is best suited. For example:
+  \begin{itemize}
+  		\item Terms in the $\pi$-calculus can be used as linear logical proofs. The $\pi$-calculus is one of the most well-studied concurrent computational models. If blockchain sharding becomes reality, concurrency will almost certainly play a central role, thus making languages that can deal with it in a native and principled way ideal candidates for blockchain languages.
+  		\item In the same way, terms in the $\lambda$-calculus can be used, granting programmers a rather strict programming interface for when they actively don't want to consider the complexities of concurrent programs.
+  \end{itemize}
 \end{itemize}
 
 \subsection{Requirements}
 
 \begin{enumerate}
-  \item R01: Programming obvious applications has to be intuitive.
-  \item R02: Practically proving the correctness of programs must be possible.
-  \item R03: Execution of compiled programs must be relatively efficient.
-  \item R04: Programs have to be composable with other programs (e.g. they should be able to call and be called by other programs).
+  \item[R01] Programming obvious applications has to be intuitive.
+  \item[R02] Practically proving the correctness of programs must be possible.
+  \item[R03] Execution of compiled programs must be relatively efficient.
+  \item[R04] Programs have to be composable with other programs (i.e. programs are used to build larger programs, are used to build larger programs).
 \end{enumerate}
 
 \section{General Idea}
 
-The general Idea is to view the blockchain [contract] as a Multiset $\mathcal{B}$ of Resources.
+The general Idea is to view the blockchain [contract] as a multiset $\mathcal{B}$ of resources.
 
 \begin{equation}
   \prftree[r]
