@@ -70,9 +70,11 @@ There are several reasons for why we think a logical language based on linear lo
   \item[R04] Programs have to be composable with other programs (i.e. programs are used to build larger programs, are used to build larger programs).
 \end{enumerate}
 
-\section{General Idea}
+\section{General idea}
+On a high level, the idea is to view the blockchain as a multiset $\mathcal{B}$ of resources. A transaction consists of taking a subset $\Delta$ of those resources, using them to create a new resource $C$, and replacing $\Delta$ with $C$ in $\mathcal{B}$. More precisely, the resources in the blockchain $\mathcal{B}$ are linear logical propositions, and selecting a subset of them
 
-The general Idea is to view the blockchain [contract] as a multiset $\mathcal{B}$ of resources.
+\subsection{Unification}
+During a blockchain transition step a Most General Unifier(MGU) $\theta$ has to be found. Initially $\theta$ contains the assignment of reserved variables, such as $Sender, Origin, BlockNumber, $ etc, which don't change during unification.
 
 \begin{equation}
   \prftree[r]
@@ -85,15 +87,11 @@ The general Idea is to view the blockchain [contract] as a multiset $\mathcal{B}
       \Delta\vdash C
     }
   }
-  {\exists\theta.\Delta\theta\subseteq\mathcal{B}}
-  {\mathcal{B}\longrightarrow\mathcal{B}\setminus\Delta\theta\cup\{C\theta\}}
+  {\exists\theta. \Delta\theta \subseteq \mathcal{B}\theta}
+  {\mathcal{B} \longrightarrow \mathcal{B} \setminus \Delta\theta \cup \{C\theta\}}
 \end{equation}
 
-\subsection{Unification}
-During a blockchain transition step a Most General Unifier(MGU) $\theta$ has to be found. Initially $\theta$ contains the assigment of reserved variables, such as $Sender, Origin, BlockNumber, $ etc, which don't change during unification.
-
-
-\section{example programms}
+\section{example programs}
 
 Lets consider a simple token.
 
