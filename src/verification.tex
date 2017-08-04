@@ -1,0 +1,582 @@
+\TODO{explain the syntactic suggar notation: \$ - persist within a lolli, (omitting $\otimes$)}
+\TODO{implicit: $\$code(PC, <opcode>)$}
+
+Formal verificati of contracts on the opcode level is possible in Linear Logic. For this we will take the same aproach as described in Section EVM Implementation, but this time model teh actual EVM as described in \cite{Wood2014} rather then a POC stack machine, and try to prove the same properties about Simple Wallet Yoichi Hirai did in his ETH-Isabelle implementation\footnote{https://github.com/pirapira/eth-isabelle/blob/74aa293a16bd0b4d7449857e13b101d77d019185/example/SimpleWallet.thy}
+
+Since the whole programm uses only a subset of opcodes we will only model those. Namely:
+
+ STOP, EQ, ADDRESS, BALANCE, CALLER, SLOAD, JUMPI, GAS, JUMPDEST, DUP1, CALL
+
+Further we assume a simplified EVM model in which we will need the following concepts:
+
+\begin{itemize}
+  \item address
+  \item sender
+  \item balance
+  \item storage
+  \item gas
+  \item stack
+  \item pc
+  \item code
+  \item sh
+  \item memory
+\end{itemize}
+
+For now, we will ignore OutOfGas errors and will look further into it later.
+
+\subsection*{Theorems}
+Yoishi has Proven two main theorems about the contract:
+
+\begin{enumerate}
+  \item If a special address calls the contract, all balances of the contract is whisdrawn to this address
+  \item If a non-special address calls the contract, the contract returns
+\end{enumerate}
+
+The special address is located at storage position 0.
+
+
+
+\subsubsection*{PUSH1}
+
+\begin{llstep}
+  pc(PC)           &           & pc(PC + 2) \\
+  gas(X + 3)       &           & gas(X) \\
+  sh(SH)           & \multimap & sh(SH + 1) \\
+  \$code(PC+1, V)  &           & \\
+                   &           & stack(SH, V)
+\end{llstep}
+
+
+\subsubsection*{SLOAD}
+
+\begin{llstep}
+  pc(PC)            &           & pc(PC + 1) \\
+  gas(X + 200)      &           & gas(X) \\
+  \$sh(SH + 1)      & \multimap & \\
+  stack(SH, KEY)    &           & stack(SH, V) \\
+  \$storage(KEY, V) &           & \\
+\end{llstep}
+
+
+\subsubsection*{CALLER}
+
+\begin{llstep}
+  pc(PC)        &           & pc(PC + 1) \\
+  gas(X + 2)    &           & gas(X) \\
+  sh(SH)        & \multimap & sh(SH + 1) \\
+  \$sender(A)   &           & \\
+                &           & stack(SH, A)
+\end{llstep}
+
+
+\subsubsection*{ADDRESS}
+
+\begin{llstep}
+  pc(PC)        &           & pc(PC + 1) \\
+  gas(X + 2)    &           & gas(X) \\
+  sh(SH)        & \multimap & sh(SH + 1) \\
+  \$address(A)  &           & \\
+                &           & stack(SH, A)
+\end{llstep}
+
+
+\subsubsection*{EQ}
+
+\begin{llstep}
+  pc(PC)            &           & pc(PC + 1) \\
+  gas(X + 3)        &           & gas(X) \\
+  sh(SH + 2)        &           & sh(SH + 1) \\
+  stack(SH, X)      & \multimap & \\
+  stack(SH + 1, Y)  &           & \\
+                    &           & (X=Y\multimap stack(SH, 1)\\
+                    &           & \oplus X\neq Y\multimap stack(SH, 0))
+\end{llstep}
+
+
+\subsubsection*{JUMPI}
+
+\begin{llstep}
+  pc(PC)              &           & \\
+  sh(SH + 2)          &           & sh(SH) \\
+  gas(X + 10)         &           & gas(X) \\
+  stack(SH, C)        & \multimap & \\
+  stack(SH + 1, NPC)  &           & \\
+                      &           & (C\neq 0\multimap pc(NPC)\\
+                      &           & \oplus C=0 \multimap pc(PC + 1))
+\end{llstep}
+
+
+\subsubsection*{DUP1}
+
+\begin{llstep}
+  pc(PC)          &           & pc(PC + 1) \\
+  gas(X + 3)      &           & gas(X) \\
+  sh(SH + 1)      & \multimap & sh(SH + 2) \\
+  \$stack(SH, V)  &           & \\
+                  &           & stack(SH + 1, V)
+\end{llstep}
+
+
+\subsubsection*{BALANCE}
+
+\begin{llstep}
+  pc(PC)          &           & pc(PC + 1) \\
+  gas(X + 400)    &           & gas(X) \\
+  \$sh(SH + 1)    & \multimap & \\
+  stack(SH, A)    &           & stack(SH, B) \\
+  \$balance(A, B) &           &
+\end{llstep}
+
+\TODO{what happenes if balance predicate is not found for the account A? this should yield B being 0, how to model this without $\oplus$. Meanwhile pretend that all addresses are intitialized with 0}
+
+\subsubsection*{GAS}
+
+\begin{llstep}
+  pc(PC)     &           & pc(PC + 1) \\
+  gas(X + 2) &           & gas(X) \\
+  sh(SH)     & \multimap & sh(SH + 1) \\
+  gas(X)     &           & \\
+             &           & stack(SH, X)
+\end{llstep}
+
+\subsubsection*{STOP}
+
+\begin{llstep}
+  pc(PC) & \multimap & pc(PC + 1) \\
+         &           & STOP
+\end{llstep}
+
+\subsubsection*{JUMPDEST}
+
+\begin{llstep}
+  pc(PC)     & \multimap & pc(PC + 1) \\
+  gas(X + 1) &           & gas(X)
+\end{llstep}
+
+
+\subsubsection*{CALL}
+
+\begin{llstep}
+  pc(PC) & & pc(PC + 1) \\
+  sh(SH + 8) && sh(SH + 1) \\
+  stack(SH)
+\end{llstep}
+
+\TODO{here a bunch of stuff happens, model it!}
+\TODO{since in here we are just interested in the balance, maybe it is sufficient to just model the value transfear of call and keep everything else in place? Depending on how complex the full modell is}
+
+
+\subsection*{Programm}
+
+The program code:
+
+\[
+  \begin{array}{rcl}
+    C & :=      & code(0, PUSH) \\
+      & \otimes & code(1, 0) \\
+      & \otimes & code(2, SLOAD) \\
+      & \otimes & code(3, CALLER) \\
+      & \otimes & code(4, EQ) \\
+      & \otimes & code(5, PUSH) \\
+      & \otimes & code(6, 9) \\
+      & \otimes & code(7, JUMPI) \\
+      & \otimes & code(8, STOP) \\
+      & \otimes & code(9, JUMPDEST) \\
+      & \otimes & code(10, PUSH) \\
+      & \otimes & code(11, 0) \\
+      & \otimes & code(12, DUP1) \\
+      & \otimes & code(13, DUP1) \\
+      & \otimes & code(14, DUP1) \\
+      & \otimes & code(15, ADDRESS) \\
+      & \otimes & code(16, BALANCE) \\
+      & \otimes & code(17, CALLER) \\
+      & \otimes & code(18, GAS) \\
+      & \otimes & code(19, CALL) \\
+      & \otimes & code(20, STOP)
+  \end{array}
+\]
+
+\subsection*{Initial State}
+
+\[
+  \begin{array}{rcl}
+    I&:=&pc(0)\\
+    &\otimes&sh(0)\\
+    &\otimes&gas(G)\\
+    &\otimes&storage(0, W)\\
+    &\otimes&address(A)\\
+    &\otimes&balance(A, BA)\\
+    &\otimes&balance(S, BS)\\
+    &\otimes&sender(S)
+  \end{array}
+\]
+
+\subsection*{Theorems}
+
+\subsubsection*{Helpers}
+
+For the theorems we additionally allow the weakening of the context, which is happening at the end to simplify the actual theorem:
+
+\[
+  I \multimap balance(A, BA) \otimes balance(S, BS)
+\]
+
+\[
+  C \multimap 1
+\]
+
+\subsubsection*{Theorem 1.}
+\[
+  C \otimes I \otimes W = S \vdash balance(A, 0) \otimes balance(S, BS + BA) \otimes STOP
+\]
+
+\subsubsection*{step trough}
+
+\[
+  \begin{array}{rcl}
+    &&pc(0)\\
+    &\otimes&sh(0)\\
+    &\otimes&gas(G)\\
+    &\otimes&storage(0, W)\\
+    &\otimes&address(A)\\
+    &\otimes&balance(A, BA)\\
+    &\otimes&balance(S, BS)\\
+    &\otimes&sender(S) \\
+    &\otimes& W = S
+  \end{array}
+\]
+$\vdash$ \begin{flushright}(PUSH1)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(2)\\
+    &\otimes&sh(1)\\
+    &\otimes&gas(G' + 3)\\
+    &\otimes&storage(0, W)\\
+    &\otimes&address(A)\\
+    &\otimes&balance(A, BA)\\
+    &\otimes&balance(S, BS)\\
+    &\otimes&sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(SLOAD)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(3)\\
+    &\otimes&sh(1)\\
+    &\otimes&gas(G' + 203)\\
+    &\otimes&storage(0, W)\\
+    &\otimes&address(A)\\
+    &\otimes&balance(A, BA)\\
+    &\otimes&balance(S, BS)\\
+    &\otimes&sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, W)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(CALLER)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(4)\\
+    &\otimes&sh(2)\\
+    &\otimes&gas(G' + 205)\\
+    &\otimes&storage(0, W)\\
+    &\otimes&address(A)\\
+    &\otimes&balance(A, BA)\\
+    &\otimes&balance(S, BS)\\
+    &\otimes&sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, W)\\
+    &\otimes& stack(1, S)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(EQ)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(5)\\
+    &\otimes&sh(1)\\
+    &\otimes&gas(G' + 208)\\
+    &\otimes&storage(0, W)\\
+    &\otimes&address(A)\\
+    &\otimes&balance(A, BA)\\
+    &\otimes&balance(S, BS)\\
+    &\otimes&sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 1)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(PUSH)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(7)\\
+    &\otimes& sh(2)\\
+    &\otimes& gas(G' + 211)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 1)\\
+    &\otimes& stack(1, 9)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(JUMPI)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(9)\\
+    &\otimes& sh(0)\\
+    &\otimes& gas(G' + 221)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(JUMPDEST)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(10)\\
+    &\otimes& sh(0)\\
+    &\otimes& gas(G' + 222)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(PUSH)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(12)\\
+    &\otimes& sh(1)\\
+    &\otimes& gas(G' + 225)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(DUP1)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(13)\\
+    &\otimes& sh(2)\\
+    &\otimes& gas(G' + 228)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)
+  \end{array}
+\]
+
+
+$\vdash$ \begin{flushright}(DUP1)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(14)\\
+    &\otimes& sh(3)\\
+    &\otimes& gas(G' + 231)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)\\
+    &\otimes& stack(2, 0)
+  \end{array}
+\]
+
+
+$\vdash$ \begin{flushright}(DUP1)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(15)\\
+    &\otimes& sh(4)\\
+    &\otimes& gas(G' + 234)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)\\
+    &\otimes& stack(2, 0)\\
+    &\otimes& stack(3, 0)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(ADDRESS)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(16)\\
+    &\otimes& sh(5)\\
+    &\otimes& gas(G' + 236)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)\\
+    &\otimes& stack(2, 0)\\
+    &\otimes& stack(3, 0)\\
+    &\otimes& stack(4, A)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(BALANCE)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(17)\\
+    &\otimes& sh(5)\\
+    &\otimes& gas(G' + 636)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)\\
+    &\otimes& stack(2, 0)\\
+    &\otimes& stack(3, 0)\\
+    &\otimes& stack(4, BA)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(CALLER)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(18)\\
+    &\otimes& sh(6)\\
+    &\otimes& gas(G' + 638)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)\\
+    &\otimes& stack(2, 0)\\
+    &\otimes& stack(3, 0)\\
+    &\otimes& stack(4, BA)\\
+    &\otimes& stack(5, S)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(GAS)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(19)\\
+    &\otimes& sh(7)\\
+    &\otimes& gas(G' + 640)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, BA)\\
+    &\otimes& balance(S, BS)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& stack(1, 0)\\
+    &\otimes& stack(2, 0)\\
+    &\otimes& stack(3, 0)\\
+    &\otimes& stack(4, BA)\\
+    &\otimes& stack(5, S)\\
+    &\otimes& stack(6, G' + 640)
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(CALL)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(20)\\
+    &\otimes& sh(1)\\ % TODO - something
+    &\otimes& gas(G' + 640)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, 0)\\
+    &\otimes& balance(S, BS + BA)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+  \end{array}
+\]
+
+$\vdash$ \begin{flushright}(STOP)\end{flushright}
+
+\[
+  \begin{array}{rcl}
+    &&pc(21)\\
+    &\otimes& sh(1)\\ % TODO - something
+    &\otimes& gas(G' + 640)\\
+    &\otimes& storage(0, W)\\
+    &\otimes& address(A)\\
+    &\otimes& balance(A, 0)\\
+    &\otimes& balance(S, BS + BA)\\
+    &\otimes& sender(S)\\
+    &\otimes& W = S\\
+    &\otimes& stack(0, 0)\\
+    &\otimes& STOP
+  \end{array}
+\]
+Now we optimize based on our helpers:
+
+\[
+  \begin{array}{rcl}
+    && balance(A, 0)\\
+    &\otimes& balance(S, BS + BA)\\
+    &\otimes& STOP
+  \end{array}
+\]
+
+
+
+
+\subsubsection*{Theorem 2.}
+\[
+  C \otimes I \otimes W \neq S \vdash balance(A, BA) \otimes balance(S, BS) \otimes STOP
+\]
+
+

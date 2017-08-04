@@ -30,6 +30,12 @@
 \newcommandx{\QUESTION}[2][1=]{\todo[linecolor=none,backgroundcolor=blue!15,bordercolor=none,#1]{\textbf{QUESTION: }#2}}
 \newcommandx{\TODO}[2][1=]{\todo[inline,linecolor=none,backgroundcolor=blue!15,bordercolor=none,#1]{\textbf{TODO: }#2}}
 
+
+\newenvironment {llstep}
+  [0]
+  {\[ \begin{array}{lcl}}
+  {\end{array} \]}
+
 \begin{document}
 
 \title{Linear logic as a partly-executable specification language for smart contracts}
@@ -44,7 +50,7 @@
 \section{Introduction}
 We propose to use a \emph{logical programming language} based on linear logic to specify smart contracts. For those unfamiliar with the logical programming paradigm, it means that the programmer uses logical propositions to specify \emph{what} the program should do or \emph{which constraints} it should satisfy, but not \emph{how} this is achieved. From this, the computer creates a suitable program and executes it. In short, in logical programming, the specification is executable and the program is correct-by-construction, although there are caveats to this interpretation which we will discuss later.
 
-For those coming from a typed functional programming background, it can help to think of a logical language as a typed functional language, but in which the programmer only writes type signatures, no functions. This understanding is based directly on the Curry-Howard correspondence, which essentially states that type signatures are the same things as logical propositions, and programs satisfying type signatures are the same things as proofs of those propositions. 
+For those coming from a typed functional programming background, it can help to think of a logical language as a typed functional language, but in which the programmer only writes type signatures, no functions. This understanding is based directly on the Curry-Howard correspondence, which essentially states that type signatures are the same things as logical propositions, and programs satisfying type signatures are the same things as proofs of those propositions.
 
 Traditionally, logical programming is based on the notion of \emph{proof search}, in which the execution of a program is defined as finding a proof of a particular proposition. (Again, this can be understood as \emph{program synthesis}, where the computer automatically creates a program which satisfies a particular constraint.) Unfortunately, proof search is undecidable for the full linear logic, so proofs will have to be written manually in some cases. And even in the cases where it is decidable, it can be a fairly expensive procedure which is arguably not viable for smart contracts due to the cost of running execution under consensus. As we will see however, there exist alternative execution strategies, which are remarkably well-suited for executing smart contracts.
 
@@ -60,6 +66,25 @@ There are several reasons for why we think a logical language based on linear lo
   		\item In the same way, terms in the $\lambda$-calculus can be used, granting programmers a rather strict programming interface for when they actively don't want to consider the complexities of concurrent programs.
   \end{itemize}
 \end{itemize}
+
+\subsection*{My Motivation}
+\TODO{!!!}
+
+"Programming" is viewed as a process of Reason about Thoughts. The derived conclusion can be viewed as the final programm.
+
+\subsection*{Unification}
+
+\TODO{I want to make the point that logical programming > functional programming}
+
+\TODO{Unification > pattern Matching}
+\TODO{give example with $append([1], [2,3], X); X = [1,2,3] AND append([1], X, [1,2,3]); X = [2,3]$}
+
+\TODO{backwards reasoning, bidirectional pattern matching. Which is the equivalent to the ability of asking ''what input should i make, to end up in a given state (e.g. invalid or indesirable)''}
+\TODO{another example: ''X = 1'' and ''1 = X'' are the same statements - which is NOT a classical variable assignment. This allowes standard forward reasoning like with pattern matching but allowes backward reasoning + inconsistency checks}
+\TODO{Another example is: ''X = Y; Y = 1'' with is not possible in imperative or functional programming since Y is not defined in the first statement. However ''X = Y; Y = 1; X = 2'' will fail due to an inconsistency of the system, because X is already ''equal to 1''}
+
+Unification can be performed in quasi linear time\cite{Baader2001}.
+
 
 \subsection{Requirements}
 
@@ -129,6 +154,272 @@ Without loss of generality let $\Delta = value(X), q$, we want to proof $\Delta 
 With this we have shown that rules in R satisfy our stability criteria.
 The proves are rather technical and included for the purpose to demonstrate, that those proves can be easily automatized.
 \TODO{provided that the computation is deterministic and arbitrary values can't be derived. Find a way how to prove those properties automatically.}
+
+\subsection*{Increment and safe transformation and simplification of programs}
+
+Let $num$ be a binary numerical type given inductivelly by the following syntax:
+\[ b :=\ 0\ |\ 1\ \]
+\[ num :=\ b\ |\ num\ b \]
+Let $inc$ be an two-ary increment predicate over num such that:
+
+\[ inc(X, Y) \Leftrightarrow X + 1\ \%\ MAXINT = Y \]
+
+We give the proof terms by subdeviding them into increment with overflow ($inc_o$) and a safe increment without overflow ($inc_s$):
+
+\[ inc(X, Y) \equiv inc_o(X, Y) \oplus inc_s(X, Y)\]
+
+Proof is given by the following rules for $inc_s$:
+
+\begin{gather*}
+  \prftree[r]{$i_{s0}$}{\vdash inc_s(0, 1)} \\
+  \prftree[r]{$i_{sx0}$}{\Psi, X:num \vdash inc_s(X0, X1)} \\
+  \prftree[r]{$i_{ss}$}{\Psi, X:num, Y:num \vdash inc_s(X,Y)}{inc_s(X1, Y0)}
+\end{gather*}
+
+
+and the following rules for $inc_o$:
+
+\begin{gather*}
+  \prftree[r]{$i_{o0}$}{\vdash inc_o(1,0)} \\
+  \prftree[r]{$i_{os}$}{\Psi, X:num, Y:num \vdash inc_o(X,Y)}{inc_o(X1, Y0)}
+\end{gather*}
+
+Further let $div2$ be a two-ary operation over num, denoting a binary right shift operation/ division by two, given by the following rules:
+
+\begin{gather*}
+  \prftree[r]
+    {$div2_0$}
+    {\vdash div2(0, 0)}
+    \\
+  \prftree[r]
+    {$div2_0$}
+    {\vdash div2(1, 0)}\\
+  \prftree[r]
+    {$div2_{A0}$}
+    {\Psi, A:b, B:b\vdash div2(AB, 0A)}
+    \\
+  \prftree[r]
+    {$div2_{step}$}
+    {\Psi, X:num, Y:num, A:b\vdash div2(XA, Y)}
+    {\Psi, X:num, Y:num, A:b, B:b\vdash div2(XAB, YA)}
+\end{gather*}
+
+Now we can use both predicates to build Programms:
+
+\begin{eqnarray}
+  \vdash !div2(X, Y)\otimes !inc(Y, Z)
+\end{eqnarray}
+
+In this particular programm we first divide a number by two and then increment it. However, because we defined $inc$ with the help of two different predicates, the following transformation can be done safe and automatically:
+
+\begin{eqnarray}
+  \vdash !div2(X, Y) \otimes !(div_o(Y, Z)\oplus div_s(Y, Z))
+\end{eqnarray}
+
+stating that after we devide a number by two we either increment it with an overflow or without an overflow. But since after we devide a number by two no overflow on an increment can occur we should be able to abandon $inc_o$ and be able to prove the following program:
+
+\begin{eqnarray}
+  \vdash !div2(X, Y)\otimes !div_s(Y, Z)
+\end{eqnarray}
+
+Note that this transformation can be made automatically with the following provable rule:
+
+\begin{eqnarray}
+  !(A\otimes B) \vdash !A \otimes !B
+\end{eqnarray}
+
+Indeed we are able to prove this with structuran induction over X. Meaning we have the following rule for a given proposition P available (for expanded $b$):
+
+\begin{equation}
+  \prftree[r]
+    {$induct_X$}
+    {
+      \prftree[noline]
+      {
+        \prftree[noline]
+        {\Psi, \Gamma;\cdot\vdash P(0)}
+        {\Psi, \Gamma;\cdot\vdash P(1)}
+      }
+      {
+        \prftree[noline]
+        {\Psi, X:num; \Gamma, P(X);\cdot\vdash P(X 0)}
+        {\Psi, X:num; \Gamma, P(X);\cdot\vdash P(X 1)}
+      }
+    }
+    {\Psi, X:num; \Gamma;\cdot\vdash P(X)}
+\end{equation}
+
+Let $P(x)$ be $div2(X, Y)\otimes inc(Y, Z)$, then we can prove the base cases ($P(0), P(1)$):
+
+\subsubsection*{P(0):}
+\begin{eqnarray}
+  \prftree[r]
+    {$\otimes$R}
+    {
+      \prftree[r] {$!R$}
+      {
+        \prftree[r] {$div2_{0}$}
+        { \vdash div2(0, Y) }
+      }
+      { \vdash !div2(0, Y) }
+    }
+    {
+      \prftree[r]{$!R$}
+      {
+        \prftree[r] {$i_{s0}$}
+        { \vdash inc_s(Y, Z) }
+      }
+      { \vdash !inc_s(Y, Z) }
+    }
+    {\vdash !div2(0, Y)\otimes !inc_s(Y, Z) }
+\end{eqnarray}
+with $\theta = \{Y\mapsto 0, Z\mapsto 1\}$.
+
+
+\subsubsection*{P(1):}
+\begin{eqnarray}
+  \prftree[r]
+    {$\otimes$R}
+    {
+      \prftree[r]{$!R$}
+      {
+        \prftree[r] {$div2_{0}$}
+        { \vdash div2(1, Y) }
+      }
+      { \vdash div2(1, Y) }
+    }
+    {
+      \prftree[r]{$!R$}
+      {
+        \prftree[r] {$i_{s0}$}
+        { \vdash inc_s(Y, Z) }
+      }
+      { \vdash !inc_s(Y, Z) }
+    }
+    {\vdash !div2(1, Y)\otimes !inc_s(Y, Z) }
+\end{eqnarray}
+with $\theta = \{Y\mapsto 0, Z\mapsto 1\}$.
+
+the successor cases $P(x0)$:
+
+\begin{eqnarray}
+  \prftree[r]{$\otimes$L}
+  {
+    \prftree[r]{$\otimes$R}
+    {
+      \prftree[r]{$!R$}
+      {
+        \prftree[r] {$div2_{step}$}
+        {
+          \prftree[r] {$!L\circ$ copy}
+          {
+            \prftree[r] {id}
+            { div2(X,Y)\vdash div2(X, Y) }
+          }
+          { !div2(X,Y)\vdash div2(X, Y) }
+        }
+        { !div2(X,Y)\vdash div2(X0, Y') }
+      }
+      { !div2(X,Y)\vdash !div2(X0, Y') }
+    }
+    {
+      \prftree[r] {$induct_A$}
+      {
+        \mathcal{D}
+      }
+      { !inc_s(Y, Z)\vdash !inc_s(Y', Z') }
+    }
+    { !div2(X,Y), !inc_s(Y, Z)\vdash !div2(X0, Y')\otimes !inc_s(Y', Z') }
+  }
+  {!div2(X,Y)\otimes !inc_s(Y, Z)\vdash !div2(X0, Y')\otimes !inc_s(Y', Z')}
+\end{eqnarray}
+with $\mathcal{D} :=$
+\begin{eqnarray}
+  \prftree[r]{$induct_A$}
+  {
+    \prftree[r]{$!L$}
+    {
+      \prftree[r]{$!R$}
+      {
+        \prftree[r]{$i_{sx0}$}
+        { \vdash inc_s(Y0, Z') }
+      }
+      { \vdash !inc_s(Y0, Z') }
+    }
+    { !inc_s(Y,Z)\vdash !inc_s(Y0, Z') }
+  }
+  {
+    \prftree[r]{$!R$}
+    {
+      \prftree[r]{$!L\circ$ copy}
+      {
+        \prftree[r]{$i_{ss}$}
+        {
+          \prftree[r]{id}
+          { inc_s(Y,Z)\vdash inc_s(Y, Z ) }
+        }
+        { inc_s(Y,Z)\vdash inc_s(Y1, Z') }
+      }
+      { !inc_s(Y,Z)\vdash inc_s(Y1, Z') }
+    }
+    { !inc_s(Y,Z)\vdash !inc_s(Y1, Z') }
+  }
+  {!inc_s(Y, Z)\vdash !inc_s(Y', Z')}
+\end{eqnarray}
+with $\theta = \{Y' \mapsto YA\}$\\
+Note that in the left case of $\mathcal{D}$ - $Z' = Z1$ and in the left case $Z' = Y0$ and therefore not part of the most gerneral substitution.
+
+
+the successor cases $P(x1)$:
+
+\begin{eqnarray}
+  \prftree[r]{$\otimes$L}
+  {
+    \prftree[r]{$\otimes$R}
+    {
+      \prftree[r]{$!R$}
+      {
+        \prftree[r]{$div2_{step}$}
+        {
+          \prftree[r]{$!L\circ$copy}
+          {
+            \prftree[r]{id}
+            {
+              div2(X,Y) \vdash div2(X, Y)
+            }
+          }
+          {
+            !div2(X,Y) \vdash div2(X, Y)
+          }
+        }
+        {
+          !div2(X,Y) \vdash div2(X1, Y')
+        }
+      }
+      {
+        !div2(X,Y) \vdash !div2(X1, Y')
+      }
+    }
+    {
+      \prftree[r]{$induct_A$}
+      {\mathcal{D}}
+      {
+        !inc_s(Y,Z)\vdash !inc_s(Y', Z')
+      }
+    }
+    { !div2(X,Y), !inc_s(Y,Z)\vdash !div2(X1, Y')\otimes !inc_s(Y', Z') }
+  }
+  {!div2(X,Y)\otimes !inc_s(Y,Z)\vdash !div2(X1, Y')\otimes !inc_s(Y', Z')}
+\end{eqnarray}
+with $\theta := \{Y' \mapsto YA\}$
+
+On the other hand we won't be able to prove the overflow case because the base case for the induction will fail.
+\[ \not\vdash div2(X,Y)\otimes inc_o(Y,Z) \]
+
+By proving this, we have shown the general case: for all X we never encounter an overflow by computing Z.
+
+
+\TODO{How can i do the reverse? Have a mathematical operation such as $mul2(X,Y)\otimes inc(Y,Z)$ and ask for the requirements for X to produce an overflow?}
 
 \section{Efficiency}
 As computation is done via proof-search and unification, executing programms tend to be slow in practice. Therefore we are interested in methods which reduces the computational overhead. One such method could be the recuction of proof search to the execution of a minimal set of evm instructions, which yield the same result. For this the equivalence of the proof search to the evm instructions has to be \textbf{proven}.
@@ -217,6 +508,21 @@ and the termination condition:
 
 \TODO{How does this work with non-primitives, e.g. loops, math-function e.g. log, exp}
 
+\section{formal verification of bytecode}
+\input{verification.tex}
+
+\section{further considerations}
+
+\begin{itemize}
+  \item case study: quicksort
+  \begin{itemize}
+    \item implement
+    \item prove runntime is $O(n*log(n))$
+    \item prove list is fully sorted after the "algorithm" has finished
+    \item abstract away $<$ relation: e.g. forward and backward sorting
+    \item explore actual runntime cost and explore optimization-techniques for proof-search based on custom heuristics
+  \end{itemize}
+\end{itemize}
 
 
 
@@ -427,6 +733,8 @@ With $\mathcal{D} :=$
   \label{pf2}
 \end{figure*}
 
+\bibliography{library}
+\bibliographystyle{ieeetr}
 
 
 \end{document}

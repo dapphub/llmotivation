@@ -6,3 +6,6 @@
 *.synctex.gz
 
 *.pdf
+*.bbl
+*.blg
+*.tex.latexmain
